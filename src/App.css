@@ -6,57 +6,51 @@
   --green-color: #bbdfb5;
   --yellow-color: #ffeb99;
 }
-#pomodoro{
+#calculator{
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100%;
-  flex-direction: column;
-  background-color:   var(--green-color);
-}
-.title{
-  font-size: 50px;
 }
 .container{
-  font-size: 30px;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
+  display: block;
+  width: 320px; 
+  background: var(--blue-color);
+  margin: 0;
+  border: 3px solid var(--purple-super-dark-color);
 }
-.length{
-  display: flex;
-  flex-direction: row;
+.display{
+  text-align: right;
+  padding: 2px;
 }
-.length-block{
-  margin: 20px;
+.display.formula{
+  height: 20px; 
 }
-.text{
-  text-align: center;
+.display.input{
+  font-size: 29px;
 }
-.buttons{
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-}
-.arrow-button{
+.button{
+  height: 65px;
+  width: 80px;
+  font-size: 20px;
   border: none;
-  background-color:   var(--green-color);
+  background-color: var(--yellow-color);
+  padding: 0;
+  outline: 1px solid var(--purple-super-dark-color);
 }
-.session{
-  border: 7px solid #13353a;
-  border-radius: 50px;
-  width: 270px;
-  height: 160px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+.button#clear{
+  width: 160px;
+  background: var(--green-color);
+
 }
-#time-left{
-  font-family: Digital;
-  font-size: 80px;
+.button.operations{
+  background: var(--purple-color);
 }
-.buttons.control-buttons{
-  margin: 20px;
+.button#zero{
+  width: 160px;
+}
+.button#equals{
+  height: 130px;
+  position: absolute;
+  background: var(--purple-dark-color);
 }

@@ -1,222 +1,435 @@
-  
+/* global React, ReactDOM */
+/* eslint-disable react/prop-types, react/no-multi-comp,
+ no-eval, no-nested-ternary */
+
+// eslint-disable-next-line no-unused-vars
+const projectName = "javascript-calculator";
+
+// To see a more advanced version of this app with features such as toggle sign
+// and Clear Entry buttons, see this pen
+// https://codepen.io/no_stack_dub_sack/full/jrxpKP/
+
 // coded by @no-stack-dub-sack (github) / @no_stack_sub_sack (codepen)
 
-/** NOTES:
-/** Dependencies are React, ReactDOM, and 
-    Accurate_Interval.js by Squuege (external script 
-    to keep setInterval() from drifting over time & 
-    thus ensuring timer goes off at correct mark).
-/** Utilizes embedded <Audio> tag to ensure audio 
-    plays when timer tab is inactive or browser is 
-    minimized ( rather than new Audio().play() ).
-/** Audio of this fashion not supported on most 
-    mobile devices it would seem (bummer I know).
-**/
-
-// PROJECTOR SELECTOR FOR EXTERNAL TEST SCRIPT:
-const projectName = 'pomodoro-clock';
-localStorage.setItem('example_project', 'Pomodoro Clock');
+// VARS:
+const isOperator = /[x/+‑]/,
+  endsWithOperator = /[x+‑/]$/,
+  endsWithNegativeSign = /[x/+]‑$/,
+  clearStyle = { background: "#ac3939" },
+  operatorStyle = { background: "#666666" },
+  equalsStyle = {
+    background: "#004466",
+    position: "absolute",
+    height: 130,
+    bottom: 5
+  };
 
 // COMPONENTS:
-class TimerLengthControl extends React.Component {
-  render() {
-    return (
-      <div className="length-control">
-        <div id={this.props.titleID}>
-          {this.props.title}
-        </div>
-        <button id={this.props.minID}
-          className="btn-level" value="-" 
-          onClick={this.props.onClick}>
-          <i className="fa fa-arrow-down fa-2x"/>
-        </button>
-        <div id={this.props.lengthID} className="btn-level">
-          {this.props.length}
-        </div>
-        <button id={this.props.addID}
-          className="btn-level" value="+" 
-          onClick={this.props.onClick}>
-          <i className="fa fa-arrow-up fa-2x"/>
-        </button>
-      </div>
-    )
-  }
-};
-
-class Timer extends React.Component {
+class Calculator extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      brkLength: 5,
-      seshLength: 25,
-      timerState: 'stopped',
-      timerType: 'Session',
-      timer: 1500,
-      intervalID: '',
-      alarmColor: {color: 'white'}
-    }
-    this.setBrkLength = this.setBrkLength.bind(this);
-    this.setSeshLength = this.setSeshLength.bind(this);
-    this.lengthControl = this.lengthControl.bind(this);
-    this.timerControl = this.timerControl.bind(this);
-    this.beginCountDown = this.beginCountDown.bind(this);
-    this.decrementTimer = this.decrementTimer.bind(this);
-    this.phaseControl = this.phaseControl.bind(this);
-    this.warning = this.warning.bind(this);
-    this.buzzer = this.buzzer.bind(this);
-    this.switchTimer = this.switchTimer.bind(this);
-    this.clockify = this.clockify.bind(this);
-    this.reset = this.reset.bind(this);
+      currentVal: "0",
+      prevVal: "0",
+      formula: "",
+      currentSign: "pos",
+      lastClicked: ""
+    };
+    this.maxDigitWarning = this.maxDigitWarning.bind(this);
+    this.handleOperators = this.handleOperators.bind(this);
+    this.handleEvaluate = this.handleEvaluate.bind(this);
+    this.initialize = this.initialize.bind(this);
+    this.handleDecimal = this.handleDecimal.bind(this);
+    this.handleNumbers = this.handleNumbers.bind(this);
   }
-  setBrkLength(e) {
-    this.lengthControl('brkLength', e.currentTarget.value, 
-    this.state.brkLength, 'Session');
-  }
-  setSeshLength(e) {
-    this.lengthControl('seshLength', e.currentTarget.value, 
-    this.state.seshLength, 'Break');
-  }
-  lengthControl(stateToChange, sign, currentLength, timerType) {
-    if (this.state.timerState == 'running') return;
-    if (this.state.timerType == timerType) {
-      if (sign == "-" && currentLength != 1 ) {
-        this.setState({[stateToChange]: currentLength - 1});
-      } else if (sign == "+" && currentLength != 60) {
-        this.setState({[stateToChange]: currentLength + 1});
-      } 
-    } else {
-      if (sign == "-" && currentLength != 1 ) {
-        this.setState({[stateToChange]: currentLength - 1,
-        timer: currentLength * 60 - 60});
-      } else if (sign == "+" && currentLength != 60) {
-        this.setState({[stateToChange]: currentLength + 1,
-        timer: currentLength * 60 + 60});
-      } 
-    }
-  }
-  timerControl() {
-    let control = this.state.timerState == 'stopped' ? (
-      this.beginCountDown(),
-      this.setState({timerState: 'running'})
-    ) : (
-      this.setState({timerState: 'stopped'}),
-      this.state.intervalID && this.state.intervalID.cancel()
-    );
-  }
-  beginCountDown() {
+
+  maxDigitWarning() {
     this.setState({
-      intervalID: accurateInterval(() => {
-        this.decrementTimer(); 
-        this.phaseControl();
-       }, 1000)
-    })
-  }
-  decrementTimer() {
-    this.setState({timer: this.state.timer - 1});
-  }
-  phaseControl() {
-    let timer = this.state.timer;
-    this.warning(timer);
-    this.buzzer(timer);
-    if (timer < 0) { 
-      this.state.timerType == 'Session' ? (
-        this.state.intervalID && this.state.intervalID.cancel(),
-        this.beginCountDown(),
-        this.switchTimer(this.state.brkLength * 60, 'Break')
-      ) : (
-        this.state.intervalID && this.state.intervalID.cancel(),
-        this.beginCountDown(),
-        this.switchTimer(this.state.seshLength * 60, 'Session')
-      );
-    
-    }  
-  }
-  warning(_timer) {
-    let warn = _timer < 61 ? 
-    this.setState({alarmColor: {color: '#a50d0d'}}) : 
-    this.setState({alarmColor: {color: 'white'}});
-  }
-  buzzer(_timer) {
-    if (_timer === 0) {
-      this.audioBeep.play();
-    }
-  }
-  switchTimer(num, str) {
-    this.setState({
-      timer: num,
-      timerType: str,
-      alarmColor: {color: 'white'}
-    })
-  }
-  clockify() {
-    let minutes = Math.floor(this.state.timer / 60);
-    let seconds = this.state.timer - minutes * 60;
-    seconds = seconds < 10 ? '0' + seconds : seconds;
-    minutes = minutes < 10 ? '0' + minutes : minutes;
-    return minutes + ':' + seconds;
-  }
-  reset() {
-    this.setState({
-      brkLength: 5,
-      seshLength: 25,
-      timerState: 'stopped',
-      timerType: 'Session',
-      timer: 1500,
-      intervalID: '',
-      alarmColor: {color: 'white'}
+      currentVal: "Digit Limit Met",
+      prevVal: this.state.currentVal
     });
-    this.state.intervalID && this.state.intervalID.cancel();
-    this.audioBeep.pause();
-    this.audioBeep.currentTime = 0;
+    setTimeout(() => this.setState({ currentVal: this.state.prevVal }), 1000);
   }
+
+  handleEvaluate() {
+    if (!this.state.currentVal.includes("Limit")) {
+      let expression = this.state.formula;
+      while (endsWithOperator.test(expression)) {
+        expression = expression.slice(0, -1);
+      }
+      expression = expression.replace(/x/g, "*").replace(/‑/g, "-");
+      let answer = Math.round(1000000000000 * eval(expression)) / 1000000000000;
+      this.setState({
+        currentVal: answer.toString(),
+        formula:
+          expression.replace(/\*/g, "⋅").replace(/-/g, "‑") + "=" + answer,
+        prevVal: answer,
+        evaluated: true
+      });
+    }
+  }
+
+  handleOperators(e) {
+    if (!this.state.currentVal.includes("Limit")) {
+      const value = e.target.value;
+      const { formula, prevVal, evaluated } = this.state;
+      this.setState({ currentVal: value, evaluated: false });
+      if (evaluated) {
+        this.setState({ formula: prevVal + value });
+      } else if (!endsWithOperator.test(formula)) {
+        this.setState({
+          prevVal: formula,
+          formula: formula + value
+        });
+      } else if (!endsWithNegativeSign.test(formula)) {
+        this.setState({
+          formula:
+            (endsWithNegativeSign.test(formula + value) ? formula : prevVal) +
+            value
+        });
+      } else if (value !== "‑") {
+        this.setState({
+          formula: prevVal + value
+        });
+      }
+    }
+  }
+
+  handleNumbers(e) {
+    if (!this.state.currentVal.includes("Limit")) {
+      const { currentVal, formula, evaluated } = this.state;
+      const value = e.target.value;
+      this.setState({ evaluated: false });
+      if (currentVal.length > 21) {
+        this.maxDigitWarning();
+      } else if (evaluated) {
+        this.setState({
+          currentVal: value,
+          formula: value !== "0" ? value : ""
+        });
+      } else {
+        this.setState({
+          currentVal:
+            currentVal === "0" || isOperator.test(currentVal)
+              ? value
+              : currentVal + value,
+          formula:
+            currentVal === "0" && value === "0"
+              ? formula === "" ? value : formula
+              : /([^.0-9]0|^0)$/.test(formula)
+                ? formula.slice(0, -1) + value
+                : formula + value
+        });
+      }
+    }
+  }
+
+  handleDecimal() {
+    if (this.state.evaluated === true) {
+      this.setState({
+        currentVal: "0.",
+        formula: "0.",
+        evaluated: false
+      });
+    } else if (
+      !this.state.currentVal.includes(".") &&
+      !this.state.currentVal.includes("Limit")
+    ) {
+      this.setState({ evaluated: false });
+      if (this.state.currentVal.length > 21) {
+        this.maxDigitWarning();
+      } else if (
+        endsWithOperator.test(this.state.formula) ||
+        (this.state.currentVal === "0" && this.state.formula === "")
+      ) {
+        this.setState({
+          currentVal: "0.",
+          formula: this.state.formula + "0."
+        });
+      } else {
+        this.setState({
+          currentVal: this.state.formula.match(/(-?\d+\.?\d*)$/)[0] + ".",
+          formula: this.state.formula + "."
+        });
+      }
+    }
+  }
+
+  initialize() {
+    this.setState({
+      currentVal: "0",
+      prevVal: "0",
+      formula: "",
+      currentSign: "pos",
+      lastClicked: "",
+      evaluated: false
+    });
+  }
+
   render() {
     return (
       <div>
-        <div className="main-title">
-          Pomodoro Clock
+        <div className="calculator">
+          <Formula formula={this.state.formula.replace(/x/g, "⋅")} />
+          <Output currentValue={this.state.currentVal} />
+          <Buttons
+            decimal={this.handleDecimal}
+            evaluate={this.handleEvaluate}
+            initialize={this.initialize}
+            numbers={this.handleNumbers}
+            operators={this.handleOperators}
+          />
         </div>
-        <TimerLengthControl 
-          titleID="break-label"   minID="break-decrement"
-          addID="break-increment" lengthID="break-length"
-          title="Break Length"    onClick={this.setBrkLength}
-          length={this.state.brkLength}/>
-        <TimerLengthControl 
-          titleID="session-label"   minID="session-decrement"
-          addID="session-increment" lengthID="session-length"
-          title="Session Length"    onClick={this.setSeshLength} 
-          length={this.state.seshLength}/>
-        <div className="timer" style={this.state.alarmColor}>
-          <div className="timer-wrapper">
-            <div id='timer-label'>
-              {this.state.timerType}
-            </div>
-            <div id='time-left'>
-              {this.clockify()}
-            </div>
-          </div>
-        </div>
-        <div className="timer-control">
-          <button id="start_stop" onClick={this.timerControl}>
-            <i className="fa fa-play fa-2x"/>
-            <i className="fa fa-pause fa-2x"/>
-          </button>
-          <button id="reset" onClick={this.reset}>
-            <i className="fa fa-refresh fa-2x"/>
-          </button>
-        </div>
-        <div className="author"> Designed and Coded by <br />
-          <a target="_blank" href="https://goo.gl/6NNLMG"> 
+        <div className="author">
+          {" "}
+          Designed and Coded By <br />
+          <a href="https://goo.gl/6NNLMG" target="_blank">
             Peter Weinberg
           </a>
         </div>
-        <audio id="beep" preload="auto" 
-          src="https://goo.gl/65cBl1"
-          ref={(audio) => { this.audioBeep = audio; }} />
       </div>
-    )
+    );
   }
-};
+}
 
-ReactDOM.render(<Timer />, document.getElementById('app'));
+class Buttons extends React.Component {
+  render() {
+    return (
+      <div>
+        <button
+          className="jumbo"
+          id="clear"
+          onClick={this.props.initialize}
+          style={clearStyle}
+          value="AC"
+        >
+          AC
+        </button>
+        <button
+          id="divide"
+          onClick={this.props.operators}
+          style={operatorStyle}
+          value="/"
+        >
+          /
+        </button>
+        <button
+          id="multiply"
+          onClick={this.props.operators}
+          style={operatorStyle}
+          value="x"
+        >
+          x
+        </button>
+        <button id="seven" onClick={this.props.numbers} value="7">
+          7
+        </button>
+        <button id="eight" onClick={this.props.numbers} value="8">
+          8
+        </button>
+        <button id="nine" onClick={this.props.numbers} value="9">
+          9
+        </button>
+        <button
+          id="subtract"
+          onClick={this.props.operators}
+          style={operatorStyle}
+          value="‑"
+        >
+          -
+        </button>
+        <button id="four" onClick={this.props.numbers} value="4">
+          4
+        </button>
+        <button id="five" onClick={this.props.numbers} value="5">
+          5
+        </button>
+        <button id="six" onClick={this.props.numbers} value="6">
+          6
+        </button>
+        <button
+          id="add"
+          onClick={this.props.operators}
+          style={operatorStyle}
+          value="+"
+        >
+          +
+        </button>
+        <button id="one" onClick={this.props.numbers} value="1">
+          1
+        </button>
+        <button id="two" onClick={this.props.numbers} value="2">
+          2
+        </button>
+        <button id="three" onClick={this.props.numbers} value="3">
+          3
+        </button>
+        <button
+          className="jumbo"
+          id="zero"
+          onClick={this.props.numbers}
+          value="0"
+        >
+          0
+        </button>
+        <button id="decimal" onClick={this.props.decimal} value=".">
+          .
+        </button>
+        <button
+          id="equals"
+          onClick={this.props.evaluate}
+          style={equalsStyle}
+          value="="
+        >
+          =
+        </button>
+      </div>
+    );
+  }
+}
 
+class Output extends React.Component {
+  render() {
+    return (
+      <div className="outputScreen" id="display">
+        {this.props.currentValue}
+      </div>
+    );
+  }
+}
+
+class Formula extends React.Component {
+  render() {
+    return <div className="formulaScreen">{this.props.formula}</div>;
+  }
+}
+
+ReactDOM.render(<Calculator />, document.getElementById("app"));
+
+import React from 'react';
+import './App.css';
+
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      enteredValue: "",
+      input: "",
+      display: "0",
+      lastOperation: "",
+      result: "",
+    };
+  }
+  handleClear() {
+    this.setState({
+      enteredValue: "",
+      lastOperation: "",
+      input: "",
+      display: "0",
+      result: "",
+    })
+  }
+  handleInput(e) {
+    let value = e.target.value
+    const regexOperation = /[\+\-\*\/=]/
+    //handle default state 0
+    if (this.state.enteredValue === "") {
+      this.setState({
+        input: value,
+        display: value,
+        result: value
+      })
+    } else {
+      //operation entered - no calculation is needed
+      if (regexOperation.test(value)) {
+        if (value === "=") {
+          this.setState((state) => {
+            return {
+              operation: value,
+              input: state.input + value + state.result,
+              enteredValue: ""
+            }
+          })
+        } else {
+          this.setState((state) => {
+            return {
+              operation: value,
+              input: state.input.concat(value)
+            }
+          })
+        }
+      }
+      //number is enetered 
+      else {
+        let res = this.state.result
+        //operation is truthy
+        if (this.state.operation) {
+          res = this.calulateResult(this.state.operation, this.state.result, value)
+        }
+        this.setState((state) => {
+          return {
+            enteredValue: value,
+            input: state.input + value,
+            lastOperation: "",
+            result: res,
+          }
+        })
+      }
+    }
+  }
+
+  calulateResult(operation, prevResult, enteredValue) {
+    switch (operation) {
+      case "+": return parseInt(prevResult, 10) + parseInt(enteredValue, 10);
+      case "-": return parseInt(prevResult, 10) - parseInt(enteredValue, 10);
+      case "*": return parseInt(prevResult, 10) * parseInt(enteredValue, 10);
+      case "/": return parseInt(prevResult, 10) / parseInt(enteredValue, 10);
+    }
+  }
+
+  render() {
+    return (
+      <div id="calculator" className="container">
+        <div id="input">{this.state.input}</div>
+        <div>"....."</div>
+        <div id="display">{this.state.display}</div>
+
+        <Buttons clear={this.handleClear.bind(this)} input={this.handleInput.bind(this)} />
+
+        <div id="result">........enteredValue: {this.state.enteredValue}</div>
+        <div id="result">........lastOperation: {this.state.lastOperation}</div>
+        <div id="result">........result: {this.state.result}</div>
+
+      </div >
+    );
+  }
+}
+
+class Buttons extends React.Component {
+  render() {
+    return (
+      <div>
+        <button id="zero" onClick={this.props.input} value="0">0</button>
+        <button id="one" onClick={this.props.input} value="1">1</button>
+        <button id="two" onClick={this.props.input} value="2">2</button>
+        <button id="three" onClick={this.props.input} value="3">3</button>
+        <button id="four" onClick={this.props.input} value="4">4</button>
+        <button id="five" onClick={this.props.input} value="5">5</button>
+        <button id="six" onClick={this.props.input} value="6">6</button>
+        <button id="seven" onClick={this.props.input} value="7">7</button>
+        <button id="eight" onClick={this.props.input} value="8">8</button>
+        <button id="nine" onClick={this.props.input} value="9">9</button>
+        <button id="equals" onClick={this.props.input} value="=">=</button>
+        <button id="add" onClick={this.props.input} value="+">+</button>
+        <button id="subtract" onClick={this.props.input} value="-">-</button>
+        <button id="multiply" onClick={this.props.input} value="*">*</button>
+        <button id="divide" onClick={this.props.input} value="/">/</button>
+        <button id="decimal" onClick={this.props.input} value=".">.</button>
+        <button id="clear" onClick={this.props.clear}>AC</button>
+      </div>
+    );
+  }
+}
+
+export default App;
 

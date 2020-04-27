@@ -28,14 +28,13 @@ class App extends React.Component {
     this.setState((state) => {
       return {
         display: value,
-        lastAcceptedValue: value,
         formula: value,
         result: value
       }
     })
   }
   handleOperations(value) {
-    let _result = this.calulateResult(this.state.prevOperation, this.state.result, this.state.lastAcceptedValue)
+    let _result = this.calulateResult(this.state.prevOperation, this.state.result, this.state.display)
     if (value === "=") {
       this.setState((state) => {
         return {
@@ -58,11 +57,10 @@ class App extends React.Component {
       this.setState((state) => {
         return {
           display: value,
-          lastAcceptedValue: "",
+          lastAcceptedValue: state.display,
           prevOperation: value,
           formula: state.formula + value,
-          result: _result,
-          negativeValue: false
+          result: _result
         }
       })
     }
@@ -125,31 +123,31 @@ class App extends React.Component {
       }
     }
   }
-  calulateResult(operation, a, b) {
-    console.log("operation:", operation, " a:", a, " b:", b)
+  calulateResult(operation, prevResult, currentValue) {
+    console.log("operation:", operation, " prevResult:", prevResult, " currentValue:", currentValue)
     //if number was accepted and operation wasn't entered
     if (this.state.prevOperation === "" || regexOperation.test(this.state.display)) {
-      return a
+      return prevResult
     }
     switch (operation) {
-      case "+": return parseFloat(a) + parseFloat(b);
-      case "-": return parseFloat(a) - parseFloat(b);
-      case "*": return parseFloat(a) * parseFloat(b);
-      case "/": return (Math.round((parseFloat(a) / parseFloat(b)) * 10000)) / 10000;
+      case "+": return parseFloat(prevResult) + parseFloat(currentValue);
+      case "-": return parseFloat(prevResult) - parseFloat(currentValue);
+      case "*": return parseFloat(prevResult) * parseFloat(currentValue);
+      case "/": return (Math.round((parseFloat(prevResult) / parseFloat(currentValue)) * 10000)) / 10000;
     }
   }
 
   render() {
     return (
-      <div id="calculator">
-        <div className="container">
-          <div className="containerDisplay">
-            <div id="formula" className="formula display">{this.state.formula}</div>
-            <div id="display" className="input display">{this.state.display}</div>
-          </div>
-          <Buttons clear={this.handleClear.bind(this)} input={this.handleInput.bind(this)} />
-        </div >
-      </div>
+      <div id="calculator" className="container">
+        <div id="formula">{this.state.formula}</div>.....
+        <div id="display">{this.state.display}</div>
+        <Buttons clear={this.handleClear.bind(this)} input={this.handleInput.bind(this)} />
+        <div>display: {this.state.display}; </div>
+        <div>lastAcceptedValue: {this.state.lastAcceptedValue}; </div>
+        <div>prevOperation: {this.state.prevOperation}; </div>
+        <div>result: {this.state.result}; </div>
+      </div >
     );
   }
 }
@@ -158,23 +156,23 @@ class Buttons extends React.Component {
   render() {
     return (
       <div>
-        <button id="clear" className="button clear" onClick={this.props.clear}>AC</button>
-        <button id="divide" className="button operations" onClick={this.props.input} value="/">/</button>
-        <button id="multiply" className="button operations" onClick={this.props.input} value="*">*</button>
-        <button id="seven" className="button" onClick={this.props.input} value="7">7</button>
-        <button id="eight" className="button" onClick={this.props.input} value="8">8</button>
-        <button id="nine" className="button" onClick={this.props.input} value="9">9</button>
-        <button id="subtract" className="button operations" onClick={this.props.input} value="-">-</button>
-        <button id="four" className="button" onClick={this.props.input} value="4">4</button>
-        <button id="five" className="button" onClick={this.props.input} value="5">5</button>
-        <button id="six" className="button" onClick={this.props.input} value="6">6</button>
-        <button id="add" className="button operations" onClick={this.props.input} value="+">+</button>
-        <button id="one" className="button" onClick={this.props.input} value="1">1</button>
-        <button id="two" className="button" onClick={this.props.input} value="2">2</button>
-        <button id="three" className="button" onClick={this.props.input} value="3">3</button>
-        <button id="equals" className="button" onClick={this.props.input} value="=">=</button>
-        <button id="zero" className="button" onClick={this.props.input} value="0">0</button>
-        <button id="decimal" className="button" onClick={this.props.input} value=".">.</button>
+        <button id="zero" onClick={this.props.input} value="0">0</button>
+        <button id="one" onClick={this.props.input} value="1">1</button>
+        <button id="two" onClick={this.props.input} value="2">2</button>
+        <button id="three" onClick={this.props.input} value="3">3</button>
+        <button id="four" onClick={this.props.input} value="4">4</button>
+        <button id="five" onClick={this.props.input} value="5">5</button>
+        <button id="six" onClick={this.props.input} value="6">6</button>
+        <button id="seven" onClick={this.props.input} value="7">7</button>
+        <button id="eight" onClick={this.props.input} value="8">8</button>
+        <button id="nine" onClick={this.props.input} value="9">9</button>
+        <button id="equals" onClick={this.props.input} value="=">=</button>
+        <button id="add" onClick={this.props.input} value="+">+</button>
+        <button id="subtract" onClick={this.props.input} value="-">-</button>
+        <button id="multiply" onClick={this.props.input} value="*">*</button>
+        <button id="divide" onClick={this.props.input} value="/">/</button>
+        <button id="decimal" onClick={this.props.input} value=".">.</button>
+        <button id="clear" onClick={this.props.clear}>AC</button>
       </div>
     );
   }
